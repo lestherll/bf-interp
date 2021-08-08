@@ -75,6 +75,9 @@ class Interpreter:
                 self.output()
             elif token == "INPUT":
                 self.input_()
+            # needs improvement
+            # store brace pair index
+            # and jump instead of stepping
             elif token == "OPEN_LOOP":
                 if self.cells[self.pointer] == 0:
                     open_braces = 1
