@@ -1,3 +1,4 @@
+import itertools
 import sys
 from typing import Tuple, List
 
@@ -12,6 +13,14 @@ TOKENS = {
     ",": "INPUT",
     "[": "OPEN_LOOP",
     "]": "CLOSE_LOOP"
+}
+
+UNARY_TOKENS = {
+    sym: token for sym, token in zip(map("".join, itertools.product(["0", "1"], repeat=3)), TOKENS.values())
+}
+
+BF_TO_UN = {
+    sym: token for sym, token in zip(TOKENS.keys(), UNARY_TOKENS.keys())
 }
 
 def balanced(program: str) -> bool:
@@ -31,12 +40,26 @@ def balanced(program: str) -> bool:
 
 class Interpreter:
 
-    def __init__(self, program: str) -> None:
+    def __init__(self, program: str, token_map: dict[str, str] = TOKENS) -> None:
         self.program: str = program
+        self.token_map = token_map
         # self.cells: List[int] = [0 for _ in range(CELL_COUNT)]
-        self.cells: List[int] = [0 for _ in range(program.count(">")+1)]
+        # self.cells: List[int] = [0 for _ in range(program.count(">")+1)]
+        self.cells = [0] * self.lex().count("R_SHIFT")
         self.pointer: int = 0
+        self.token_map = token_map
         # self.interpret()
+
+    def bf_to_unary(self, save_file=None):
+        result = []
+        for i, sym in enumerate(self.program):
+            result.append(BF_TO_UN.get(sym, ""))
+
+        if save_file is None:
+            return result
+        else:
+            with open(save_file, "w") as unary_file:
+                unary_file.write("".join(result))
 
     def current(self) -> int:
         return self.cells[self.pointer]
@@ -44,9 +67,14 @@ class Interpreter:
     def lex(self) -> List[str]:
         # return [TOKENS.get(char, None) for i, char in enumerate(self.program)]
         tokens = []
-        for i, char in enumerate(self.program):
-            if char in TOKENS:
-                tokens.append(TOKENS[char])
+        # for i, char in enumerate(self.program):
+        #     if char in self.token_map:
+        #         tokens.append(self.token_map[char])
+        for c in range(0, len(self.program), 3):
+            char = "".join(map(str, (self.program[c], self.program[c+1], self.program[c+2])))
+            if char in self.token_map:
+                tokens.append(self.token_map[char])
+
         return tokens
 
     def syntax(self) -> bool:
@@ -55,8 +83,8 @@ class Interpreter:
     def interpret(self) -> None:
         if not self.syntax():
             raise Exception("Syntax Error")
-        else:
-            print("syntax ok")
+        # else:
+        #     print("syntax ok")
 
         i: int = 0
         lexed: List[str] = self.lex()
@@ -118,13 +146,19 @@ class Interpreter:
         new_val: str = input("\n")
         self.cells[self.pointer] = ord(new_val)
 
+
 def main():
     if len(sys.argv) == 2:
         with open(sys.argv[1], "r") as file:
             program = file.read()
-        Interpreter(program=program).interpret()
+        # print(program)
+        interp = Interpreter(program=program, token_map=UNARY_TOKENS)
+        print(interp.lex())
+        interp.interpret()
     else:
         print("Usage:", sys.argv[0], "filename")
 
+
 if __name__ == "__main__":
     main()
+    print(UNARY_TOKENS)
